@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { DailyReadings, getLiturgicalColorClass } from '@/lib/gpt5-client';
+import { DailyReadings, getLiturgicalColorClass } from '@/lib/types';
 
 interface LiturgicalHeaderProps {
   readings: DailyReadings;

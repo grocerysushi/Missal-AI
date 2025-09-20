@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Header from '@/components/layout/Header';
 import DailyReadings from '@/components/readings/DailyReadings';
-import { DailyReadings as DailyReadingsType, formatLiturgicalDate } from '@/lib/gpt5-client';
+import { DailyReadings as DailyReadingsType, formatLiturgicalDate } from '@/lib/types';
 
 export default function Home() {
   const [currentDate, setCurrentDate] = useState(new Date());

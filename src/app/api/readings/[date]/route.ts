@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCachedReadings, formatLiturgicalDate } from '@/lib/gpt5-client';
+import { getCachedReadings } from '@/lib/gpt5-client';
+import { formatLiturgicalDate } from '@/lib/types';
 
 // Enable Edge Runtime for faster responses
 export const runtime = 'edge';

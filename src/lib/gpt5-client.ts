@@ -1,34 +1,20 @@
 import OpenAI from 'openai';
+import { DailyReadings, LiturgicalError } from './types';
 
-// Initialize OpenAI client
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// Initialize OpenAI client (only on server side)
+function getOpenAIClient() {
+  // Ensure this only runs on the server
+  if (typeof window !== 'undefined') {
+    throw new Error('OpenAI client can only be used on the server side');
+  }
 
-// Types for liturgical readings
-export interface LiturgicalReading {
-  title: string;
-  citation: string;
-  text: string;
-  response?: string; // For responsorial psalms
-}
+  if (!process.env.OPENAI_API_KEY) {
+    throw new Error('OPENAI_API_KEY environment variable is not set');
+  }
 
-export interface DailyReadings {
-  date: string;
-  liturgicalDate: string;
-  season: string;
-  color: 'red' | 'gold' | 'white' | 'green' | 'purple' | 'rose' | 'black';
-  rank: 'solemnity' | 'feast' | 'memorial' | 'optional_memorial' | 'weekday';
-  firstReading: LiturgicalReading;
-  psalm: LiturgicalReading;
-  secondReading?: LiturgicalReading;
-  gospel: LiturgicalReading;
-  saint?: string;
-}
-
-export interface LiturgicalError {
-  error: string;
-  fallback?: Partial<DailyReadings>;
+  return new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+  });
 }
 
 /**
@@ -86,19 +72,7 @@ export async function fetchLiturgicalReadings(
   date: string
 ): Promise<DailyReadings | LiturgicalError> {
   try {
-    if (!process.env.OPENAI_API_KEY) {
-      return {
-        error: 'OpenAI API key not configured',
-        fallback: {
-          date,
-          liturgicalDate: 'Unable to fetch liturgical information',
-          season: 'Ordinary Time',
-          color: 'green',
-          rank: 'weekday',
-        },
-      };
-    }
-
+    const openai = getOpenAIClient();
     const prompt = createLiturgicalPrompt(date);
 
     const completion = await openai.chat.completions.create({
@@ -193,26 +167,3 @@ export async function getCachedReadings(
   return readings;
 }
 
-/**
- * Formats a date for liturgical calendar lookup
- */
-export function formatLiturgicalDate(date: Date): string {
-  return date.toISOString().split('T')[0]; // YYYY-MM-DD format
-}
-
-/**
- * Gets the liturgical color class for styling
- */
-export function getLiturgicalColorClass(color: DailyReadings['color']): string {
-  const colorMap = {
-    red: 'text-liturgical-red border-liturgical-red',
-    gold: 'text-liturgical-gold border-liturgical-gold',
-    white: 'text-liturgical-white border-liturgical-white',
-    green: 'text-liturgical-green border-liturgical-green',
-    purple: 'text-liturgical-purple border-liturgical-purple',
-    rose: 'text-liturgical-rose border-liturgical-rose',
-    black: 'text-liturgical-black border-liturgical-black',
-  };
-
-  return colorMap[color] || 'text-liturgical-green border-liturgical-green';
-}

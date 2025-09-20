@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { LiturgicalReading } from '@/lib/gpt5-client';
+import { LiturgicalReading } from '@/lib/types';
 
 interface ReadingDisplayProps {
   reading: LiturgicalReading;

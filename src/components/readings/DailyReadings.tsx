@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { DailyReadings as DailyReadingsType } from '@/lib/gpt5-client';
+import { DailyReadings as DailyReadingsType } from '@/lib/types';
 import ReadingDisplay from './ReadingDisplay';
 import LiturgicalHeader from './LiturgicalHeader';
 

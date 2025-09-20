@@ -1,26 +1,108 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Cinzel:wght@400;500;600&display=swap');
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Light theme - Traditional Catholic colors */
+  --background: #fefcf7;
+  --foreground: #2d1810;
+
+  /* Liturgical colors */
+  --liturgical-red: #8b0000;
+  --liturgical-gold: #ffd700;
+  --liturgical-white: #ffffff;
+  --liturgical-green: #228b22;
+  --liturgical-purple: #663399;
+  --liturgical-rose: #ff69b4;
+  --liturgical-black: #000000;
+
+  /* Accent colors */
+  --cream: #f5f3f0;
+  --warm-brown: #8b5a2b;
+  --deep-red: #722f37;
+  --soft-gold: #d4af37;
+
+  /* Text colors */
+  --text-primary: #2d1810;
+  --text-secondary: #5d4e37;
+  --text-muted: #8b7355;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+
+  /* Catholic-themed color palette */
+  --color-liturgical-red: var(--liturgical-red);
+  --color-liturgical-gold: var(--liturgical-gold);
+  --color-liturgical-white: var(--liturgical-white);
+  --color-liturgical-green: var(--liturgical-green);
+  --color-liturgical-purple: var(--liturgical-purple);
+  --color-liturgical-rose: var(--liturgical-rose);
+  --color-liturgical-black: var(--liturgical-black);
+
+  --color-cream: var(--cream);
+  --color-warm-brown: var(--warm-brown);
+  --color-deep-red: var(--deep-red);
+  --color-soft-gold: var(--soft-gold);
+
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-muted: var(--text-muted);
+
+  /* Traditional typography */
+  --font-serif: "EB Garamond", Georgia, serif;
+  --font-display: "Cinzel", Georgia, serif;
+  --font-sans: system-ui, -apple-system, sans-serif;
+
+  /* Spacing and sizing for readability */
+  --reading-max-width: 42rem;
+  --reading-line-height: 1.75;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: #1a1611;
+    --foreground: #f0e6d6;
+
+    /* Adjust liturgical colors for dark mode */
+    --liturgical-red: #cd5c5c;
+    --liturgical-gold: #daa520;
+    --deep-red: #8b4b61;
+    --soft-gold: #b8860b;
+
+    --text-primary: #f0e6d6;
+    --text-secondary: #d4c4a8;
+    --text-muted: #a08b69;
   }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-serif);
+  line-height: var(--reading-line-height);
+  font-feature-settings: "liga" 1, "kern" 1;
+  text-rendering: optimizeLegibility;
+}
+
+/* Print styles for missal readings */
+@media print {
+  body {
+    background: white;
+    color: black;
+    font-size: 12pt;
+    line-height: 1.4;
+  }
+
+  .no-print {
+    display: none !important;
+  }
+
+  .page-break-before {
+    page-break-before: always;
+  }
+
+  .page-break-after {
+    page-break-after: always;
+  }
 }

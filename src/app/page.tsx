@@ -1,103 +1,180 @@
-import Image from "next/image";
+'use client';
+
+import React, { useState, useEffect } from 'react';
+import Header from '@/components/layout/Header';
+import DailyReadings from '@/components/readings/DailyReadings';
+import { DailyReadings as DailyReadingsType, formatLiturgicalDate } from '@/lib/gpt5-client';
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [readings, setReadings] = useState<DailyReadingsType | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
+  // Fetch readings for a specific date
+  const fetchReadings = async (date: Date) => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const dateString = formatLiturgicalDate(date);
+      const response = await fetch(`/api/readings/${dateString}`);
+      const data = await response.json();
+
+      if (!response.ok) {
+        if (data.fallback) {
+          // Show fallback data with error message
+          setReadings(data.fallback as DailyReadingsType);
+          setError(data.error || 'Unable to load readings');
+        } else {
+          throw new Error(data.error || 'Failed to fetch readings');
+        }
+      } else {
+        setReadings(data.readings);
+        setError(null);
+      }
+    } catch (err) {
+      console.error('Error fetching readings:', err);
+      setError(err instanceof Error ? err.message : 'An unexpected error occurred');
+      setReadings(null);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle date changes
+  const handleDateChange = (newDate: Date) => {
+    setCurrentDate(newDate);
+  };
+
+  // Fetch readings when date changes
+  useEffect(() => {
+    fetchReadings(currentDate);
+  }, [currentDate]);
+
+  // Initialize service worker and PWA features
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      import('@/lib/sw-registration').then(({ registerServiceWorker, setupPWAInstallPrompt }) => {
+        registerServiceWorker().then((updateInfo) => {
+          if (updateInfo?.isUpdateAvailable) {
+            console.log('Service worker update available');
+          }
+        });
+
+        setupPWAInstallPrompt();
+      });
+    }
+  }, []);
+
+  // Set up keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Don't interfere if user is typing in an input
+      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) {
+        return;
+      }
+
+      switch (event.key) {
+        case 'ArrowLeft':
+        case 'h':
+          event.preventDefault();
+          const prevDay = new Date(currentDate);
+          prevDay.setDate(currentDate.getDate() - 1);
+          setCurrentDate(prevDay);
+          break;
+
+        case 'ArrowRight':
+        case 'l':
+          event.preventDefault();
+          const nextDay = new Date(currentDate);
+          nextDay.setDate(currentDate.getDate() + 1);
+          setCurrentDate(nextDay);
+          break;
+
+        case 't':
+          event.preventDefault();
+          setCurrentDate(new Date());
+          break;
+
+        case 'p':
+          event.preventDefault();
+          window.print();
+          break;
+
+        case 'r':
+          event.preventDefault();
+          fetchReadings(currentDate);
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [currentDate]);
+
+  return (
+    <>
+      {/* Header with navigation */}
+      <Header
+        currentDate={currentDate}
+        onDateChange={handleDateChange}
+        isLoading={isLoading}
+      />
+
+      {/* Main content */}
+      <div className="container mx-auto px-4 py-8 max-w-6xl">
+        {readings ? (
+          <DailyReadings
+            readings={readings}
+            isLoading={isLoading}
+            error={error || undefined}
           />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
+        ) : isLoading ? (
+          // Loading skeleton
+          <DailyReadings
+            readings={{} as DailyReadingsType}
+            isLoading={true}
           />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+        ) : error ? (
+          // Error state
+          <div className="text-center py-16">
+            <div className="bg-red-50 border border-red-200 rounded-lg p-8 max-w-md mx-auto">
+              <div className="text-red-600 font-semibold mb-4 text-lg">
+                Unable to Load Readings
+              </div>
+              <p className="text-red-700 mb-6">{error}</p>
+              <div className="space-y-3">
+                <button
+                  onClick={() => fetchReadings(currentDate)}
+                  className="w-full px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition-colors font-medium"
+                  disabled={isLoading}
+                >
+                  {isLoading ? 'Loading...' : 'Try Again'}
+                </button>
+                <button
+                  onClick={() => setCurrentDate(new Date())}
+                  className="w-full px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors font-medium"
+                >
+                  Go to Today
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : null}
+      </div>
+
+      {/* Keyboard shortcuts help (hidden, for screen readers) */}
+      <div className="sr-only">
+        <p>Keyboard shortcuts available:</p>
+        <ul>
+          <li>Left arrow or H: Previous day</li>
+          <li>Right arrow or L: Next day</li>
+          <li>T: Go to today</li>
+          <li>P: Print readings</li>
+          <li>R: Refresh readings</li>
+        </ul>
+      </div>
+    </>
   );
 }

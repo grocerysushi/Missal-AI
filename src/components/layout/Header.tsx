@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState } from 'react';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import DatePicker from '../navigation/DatePicker';
 import DayNavigation from '../navigation/DayNavigation';
 
@@ -18,6 +20,9 @@ export default function Header({
   className = ''
 }: HeaderProps) {
   const [showSettings, setShowSettings] = useState(false);
+  const pathname = usePathname();
+  const isReadingsPage = pathname === '/';
+  const isPrayersPage = pathname === '/prayers';
 
   const toggleSettings = () => {
     setShowSettings(!showSettings);
@@ -37,8 +42,8 @@ export default function Header({
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Logo and Title */}
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-3">
+          <div className="flex items-center gap-6">
+            <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
               {/* Catholic Cross Icon */}
               <div className="text-liturgical-gold text-2xl font-bold">
                 ✠
@@ -48,25 +53,55 @@ export default function Header({
                   Catholic Missal
                 </h1>
                 <div className="text-xs text-text-secondary hidden sm:block">
-                  Daily Readings
+                  Daily Readings & Prayers
                 </div>
               </div>
-            </div>
+            </Link>
+
+            {/* Navigation Links */}
+            <nav className="hidden md:flex items-center gap-1">
+              <Link
+                href="/"
+                className={`
+                  px-3 py-2 rounded-lg text-sm font-medium transition-colors
+                  ${isReadingsPage
+                    ? 'bg-liturgical-gold text-white'
+                    : 'text-text-secondary hover:text-liturgical-gold hover:bg-cream'
+                  }
+                `}
+              >
+                Readings
+              </Link>
+              <Link
+                href="/prayers"
+                className={`
+                  px-3 py-2 rounded-lg text-sm font-medium transition-colors
+                  ${isPrayersPage
+                    ? 'bg-liturgical-gold text-white'
+                    : 'text-text-secondary hover:text-liturgical-gold hover:bg-cream'
+                  }
+                `}
+              >
+                Prayers
+              </Link>
+            </nav>
           </div>
 
           {/* Navigation Controls - Desktop */}
-          <div className="hidden md:flex items-center gap-6">
-            <DayNavigation
-              currentDate={currentDate}
-              onDateChange={onDateChange}
-              isLoading={isLoading}
-            />
+          {isReadingsPage && (
+            <div className="hidden md:flex items-center gap-6">
+              <DayNavigation
+                currentDate={currentDate}
+                onDateChange={onDateChange}
+                isLoading={isLoading}
+              />
 
-            <DatePicker
-              selectedDate={currentDate}
-              onDateChange={onDateChange}
-            />
-          </div>
+              <DatePicker
+                selectedDate={currentDate}
+                onDateChange={onDateChange}
+              />
+            </div>
+          )}
 
           {/* Action Buttons */}
           <div className="flex items-center gap-2">
@@ -109,19 +144,54 @@ export default function Header({
         {/* Mobile Navigation */}
         {showSettings && (
           <div className="md:hidden border-t border-gray-200 py-4 space-y-4">
-            <DayNavigation
-              currentDate={currentDate}
-              onDateChange={onDateChange}
-              isLoading={isLoading}
-              className="justify-center"
-            />
-
-            <div className="flex justify-center">
-              <DatePicker
-                selectedDate={currentDate}
-                onDateChange={onDateChange}
-              />
+            {/* Mobile Navigation Links */}
+            <div className="flex justify-center gap-2 mb-4">
+              <Link
+                href="/"
+                className={`
+                  px-4 py-2 rounded-lg text-sm font-medium transition-colors
+                  ${isReadingsPage
+                    ? 'bg-liturgical-gold text-white'
+                    : 'text-text-secondary hover:text-liturgical-gold hover:bg-cream'
+                  }
+                `}
+                onClick={() => setShowSettings(false)}
+              >
+                Readings
+              </Link>
+              <Link
+                href="/prayers"
+                className={`
+                  px-4 py-2 rounded-lg text-sm font-medium transition-colors
+                  ${isPrayersPage
+                    ? 'bg-liturgical-gold text-white'
+                    : 'text-text-secondary hover:text-liturgical-gold hover:bg-cream'
+                  }
+                `}
+                onClick={() => setShowSettings(false)}
+              >
+                Prayers
+              </Link>
             </div>
+
+            {/* Only show date navigation on readings page */}
+            {isReadingsPage && (
+              <>
+                <DayNavigation
+                  currentDate={currentDate}
+                  onDateChange={onDateChange}
+                  isLoading={isLoading}
+                  className="justify-center"
+                />
+
+                <div className="flex justify-center">
+                  <DatePicker
+                    selectedDate={currentDate}
+                    onDateChange={onDateChange}
+                  />
+                </div>
+              </>
+            )}
           </div>
         )}
       </div>

@@ -1,6 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Turbopack configuration
+  turbopack: {
+    root: __dirname,
+  },
+
   // PWA and performance optimizations
   compress: true,
   poweredByHeader: false,

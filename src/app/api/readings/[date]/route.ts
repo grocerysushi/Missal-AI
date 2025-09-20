@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCachedReadings } from '@/lib/gpt5-client';
+import { getCachedUSCCBReadings } from '@/lib/usccb-scraper';
 import { formatLiturgicalDate } from '@/lib/types';
 
 // Enable Edge Runtime for faster responses
@@ -47,8 +47,8 @@ export async function GET(
       );
     }
 
-    // Fetch readings
-    const readings = await getCachedReadings(date);
+    // Fetch readings from USCCB
+    const readings = await getCachedUSCCBReadings(date);
 
     // Check if it's an error response
     if ('error' in readings) {

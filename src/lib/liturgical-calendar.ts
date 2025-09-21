@@ -1,7 +1,10 @@
 /**
  * Liturgical Calendar Utilities for Catholic Missal
  * Handles calculations for liturgical seasons, feast days, and calendar navigation
+ * Enhanced to support Catholic Missal API structure
  */
+
+import { LiturgicalSeason as APILiturgicalSeason, LiturgicalRank, LiturgicalColor, Celebration, LiturgicalDay } from './api-types';
 
 export interface LiturgicalSeason {
   name: 'Advent' | 'Christmas' | 'Ordinary Time' | 'Lent' | 'Easter';
@@ -258,4 +261,122 @@ export function getCalendarDates(year: number, month: number): Date[] {
   }
 
   return dates;
+}
+
+// Enhanced API-compatible functions
+
+/**
+ * Get celebrations for a specific date (API compatible)
+ */
+export function getCelebrations(date: Date): Celebration[] {
+  const celebrations: Celebration[] = [];
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+
+  // Major fixed celebrations
+  const fixedCelebrations: Record<string, Omit<Celebration, 'proper_readings'>> = {
+    '1-1': { name: 'Mary, the Holy Mother of God', rank: 'Solemnity', color: 'White', description: 'Solemnity of Mary, Mother of God' },
+    '1-6': { name: 'The Epiphany of the Lord', rank: 'Solemnity', color: 'White', description: 'The manifestation of Christ to the Gentiles' },
+    '2-2': { name: 'The Presentation of the Lord', rank: 'Feast', color: 'White', description: 'Candlemas' },
+    '3-19': { name: 'Saint Joseph, Spouse of the Blessed Virgin Mary', rank: 'Solemnity', color: 'White' },
+    '3-25': { name: 'The Annunciation of the Lord', rank: 'Solemnity', color: 'White' },
+    '6-24': { name: 'The Nativity of Saint John the Baptist', rank: 'Solemnity', color: 'White' },
+    '6-29': { name: 'Saints Peter and Paul, Apostles', rank: 'Solemnity', color: 'Red' },
+    '8-15': { name: 'The Assumption of the Blessed Virgin Mary', rank: 'Solemnity', color: 'White' },
+    '9-21': { name: 'Saint Matthew, Apostle and Evangelist', rank: 'Feast', color: 'Red' },
+    '11-1': { name: 'All Saints', rank: 'Solemnity', color: 'White' },
+    '11-2': { name: 'The Commemoration of All the Faithful Departed', rank: 'Memorial', color: 'Purple' },
+    '12-8': { name: 'The Immaculate Conception of the Blessed Virgin Mary', rank: 'Solemnity', color: 'White' },
+    '12-25': { name: 'The Nativity of the Lord', rank: 'Solemnity', color: 'White', description: 'Christmas Day' }
+  };
+
+  const key = `${month}-${day}`;
+  if (fixedCelebrations[key]) {
+    celebrations.push({
+      ...fixedCelebrations[key],
+      proper_readings: ['Solemnity', 'Feast'].includes(fixedCelebrations[key].rank)
+    });
+  }
+
+  return celebrations;
+}
+
+/**
+ * Convert internal liturgical season to API format
+ */
+export function getAPILiturgicalSeason(date: Date): {
+  season: APILiturgicalSeason;
+  week?: number;
+  color: LiturgicalColor;
+} {
+  const season = getLiturgicalSeason(date);
+
+  // Convert color to API format
+  const colorMap: Record<string, LiturgicalColor> = {
+    'red': 'Red',
+    'gold': 'White',
+    'white': 'White',
+    'green': 'Green',
+    'purple': 'Purple',
+    'rose': 'Rose',
+    'black': 'Black'
+  };
+
+  return {
+    season: season.name as APILiturgicalSeason,
+    color: colorMap[season.color] || 'Green'
+  };
+}
+
+/**
+ * Get complete liturgical day information (API compatible)
+ */
+export function getAPILiturgicalDay(date: Date): Omit<LiturgicalDay, 'readings'> {
+  const seasonInfo = getAPILiturgicalSeason(date);
+  const celebrations = getCelebrations(date);
+  const weekdays = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+  // Determine primary celebration and color
+  let primaryCelebration: Celebration | undefined;
+  let dayColor = seasonInfo.color;
+
+  if (celebrations.length > 0) {
+    // Sort by rank priority (Solemnity > Feast > Memorial > Optional Memorial)
+    const rankPriority = { 'Solemnity': 4, 'Feast': 3, 'Memorial': 2, 'Optional Memorial': 1, 'Weekday': 0, 'Sunday': 0 };
+    celebrations.sort((a, b) => rankPriority[b.rank] - rankPriority[a.rank]);
+    primaryCelebration = celebrations[0];
+
+    // High-ranking celebrations override seasonal color
+    if (['Solemnity', 'Feast'].includes(primaryCelebration.rank)) {
+      dayColor = primaryCelebration.color;
+    }
+  }
+
+  return {
+    date: date.toISOString().split('T')[0],
+    season: seasonInfo.season,
+    season_week: seasonInfo.week,
+    weekday: weekdays[date.getDay()],
+    celebrations,
+    primary_celebration: primaryCelebration,
+    color: dayColor,
+    source: 'Internal liturgical calendar calculations',
+    last_updated: new Date().toISOString()
+  };
+}
+
+/**
+ * Convert liturgical color to CSS-compatible color used in the app
+ */
+export function getColorForApp(liturgicalColor: LiturgicalColor): 'red' | 'gold' | 'white' | 'green' | 'purple' | 'rose' | 'black' {
+  const colorMap: Record<LiturgicalColor, 'red' | 'gold' | 'white' | 'green' | 'purple' | 'rose' | 'black'> = {
+    'Red': 'red',
+    'White': 'gold', // Using gold for white since it's more visually appealing
+    'Green': 'green',
+    'Purple': 'purple',
+    'Rose': 'rose',
+    'Black': 'black'
+  };
+
+  return colorMap[liturgicalColor];
 }

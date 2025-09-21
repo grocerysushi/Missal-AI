@@ -20,9 +20,23 @@ function formatUSCCBDate(date: Date): string {
  */
 function extractReading(html: string, sectionTitle: string): LiturgicalReading | null {
   try {
-    // Find the section with the given title
-    const sectionRegex = new RegExp(`<h3[^>]*>${sectionTitle}[\\s\\S]*?(?=<h3|$)`, 'i');
-    const sectionMatch = html.match(sectionRegex);
+    // Try multiple patterns for section headers - USCCB uses specific structure
+    const patterns = [
+      // USCCB specific pattern: <h3 class="name">Reading 1 </h3>
+      new RegExp(`<h3[^>]*class="name"[^>]*>\\s*${sectionTitle}[\\s\\S]*?(?=<div[^>]*class="innerblock"|$)`, 'i'),
+      // Standard h3 tag pattern
+      new RegExp(`<h3[^>]*>\\s*${sectionTitle}[\\s\\S]*?(?=<h3|$)`, 'i'),
+      // Content-header div pattern
+      new RegExp(`<div[^>]*class="content-header"[\\s\\S]*?<h3[^>]*>\\s*${sectionTitle}[\\s\\S]*?(?=<div[^>]*class="content-header"|$)`, 'i'),
+      // Alternative heading pattern
+      new RegExp(`<h[2-6][^>]*>\\s*${sectionTitle}[\\s\\S]*?(?=<h[2-6]|$)`, 'i')
+    ];
+
+    let sectionMatch = null;
+    for (const pattern of patterns) {
+      sectionMatch = html.match(pattern);
+      if (sectionMatch) break;
+    }
 
     if (!sectionMatch) {
       console.warn(`Section "${sectionTitle}" not found`);
@@ -51,6 +65,15 @@ function extractReading(html: string, sectionTitle: string): LiturgicalReading |
 
     // Clean up extra whitespace
     text = text.replace(/\s+/g, ' ').replace(/\n\s*\n/g, '\n\n').trim();
+
+    // Remove trailing page elements that don't belong to the reading
+    text = text
+      .replace(/\s*Readings for the.*$/i, '') // Remove "Readings for the" footer
+      .replace(/\s*Lectionary for Mass.*$/i, '') // Remove Lectionary notice
+      .replace(/\s*Get the Daily ReadingsEvery Morning.*$/i, '') // Remove subscription notice
+      .replace(/\s*Copyright.*$/i, '') // Remove copyright notice
+      .replace(/\s*All rights reserved.*$/i, '') // Remove rights notice
+      .trim();
 
     // For psalms, extract the response/refrain
     let response: string | undefined;
@@ -187,10 +210,19 @@ export async function scrapeUSCCBReadings(date: string): Promise<DailyReadings |
     // Extract liturgical information
     const liturgicalInfo = extractLiturgicalInfo(html, date);
 
-    // Extract readings
-    const firstReading = extractReading(html, 'Reading I');
+    // Extract readings - try both Roman numeral and Arabic formats
+    let firstReading = extractReading(html, 'Reading I');
+    if (!firstReading) {
+      firstReading = extractReading(html, 'Reading 1');
+    }
+
     const psalm = extractReading(html, 'Responsorial Psalm');
-    const secondReading = extractReading(html, 'Reading II'); // May be null
+
+    let secondReading = extractReading(html, 'Reading II');
+    if (!secondReading) {
+      secondReading = extractReading(html, 'Reading 2');
+    }
+
     const gospel = extractReading(html, 'Gospel');
 
     // Validate required readings
